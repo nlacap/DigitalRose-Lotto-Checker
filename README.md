@@ -4,7 +4,7 @@ Offline iPhone web app for checking Philippine 6-number lotto bets
 (6/42, 6/45, 6/49, 6/55, 6/58) against the official winning numbers.
 
 **Live:** https://nlacap.github.io/DigitalRose-Lotto-Checker/
-Current version is shown in the page footer (v2.5.0).
+Current version is shown in the page footer (v2.6.0).
 
 ▶ **[How-to video](https://nlacap.github.io/DigitalRose-Lotto-Checker/docs/how-to-use.mp4)** (80 s) — also linked
 from the app footer. It walks through every step below with the real app.
@@ -137,6 +137,8 @@ video shows the scanned text appearing in the box.
 
 ## Changelog
 
+- **2.6.0** — New **Clear saved results** button (under *Scan or paste official results*) empties the
+  saved official results for all games, no prompt. Removed the redundant **Clear Winning** button.
 - **2.5.0** — Renamed to DigitalRose Lotto Checker (repo, header, title, app name); “PCSO results”
   wording changed to “official results”; not-affiliated notice in the footer.
 - **2.4.0** — 🎲 Lucky Pick: per bet, for all empty bets, and to finish a pick on the number board.

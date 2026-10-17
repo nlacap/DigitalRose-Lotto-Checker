@@ -278,9 +278,13 @@ function wire() {
     afterEdit('All bets cleared.');
   });
 
-  $('#clearWin').addEventListener('click', () => {
-    draw().wins = blankRow();
-    afterEdit('Winning numbers cleared.');
+  $('#clearSaved').addEventListener('click', () => {
+    results = {};
+    const saved = saveResults(results);
+    renderSavedList();
+    $('#useSaved').hidden = true;
+    showDateHint();
+    setStatus(saved.ok ? 'info' : 'warn', saved.ok ? 'Saved official results cleared for all games.' : saved.error);
   });
 
   $('#newDraw').addEventListener('click', () => {
@@ -388,6 +392,7 @@ function autoFillWinning() {
 function renderSavedList() {
   const items = GAMES.map((g, gi) => ({ g, gi, r: latestResult(results, gi) })).filter(x => x.r);
   const box = $('#savedList');
+  $('#clearSaved').hidden = !items.length;
   if (!items.length) { box.replaceChildren(); return; }
   box.replaceChildren(
     el('div', { class: 'savedTitle' }, 'Latest saved results (tap to use):'),
