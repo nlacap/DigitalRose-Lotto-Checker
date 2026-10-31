@@ -277,6 +277,22 @@ def main():
         r.caption(6, "Summary", "Best result and number of winning bets.", pos="top")
         r.hold(3.2)
 
+        # ---- 7. date auto-fill, clearing, backup
+        r.scroll_to("#newDraw", 0.30, steps=10)
+        r.caption(7, "Dates fill themselves", "Enter bets and the next draw date for that game is set for you. Each game keeps its own bets.")
+        r.hold(2.6)
+        r.caption(7, "Clearing", "NEW DRAW clears only this game. CLEAR ALL GAMES wipes every game, after you confirm.")
+        r.scroll_to("#clearAllGames", 0.30, steps=6)
+        r.hold(3.0)
+        r.scroll_to("#backupFill", 0.20, steps=10)
+        r.caption(7, "Back up or move your data", "Open this section, tap COPY BACKUP, then paste it into RESTORE FROM BOX on another copy, e.g. Safari to the Home Screen icon.")
+        r.hold(2.0)
+        r.tap("#backupFill summary")
+        r.scroll_to("#copyBackup", 0.40, steps=6)
+        r.hold(2.0)
+        r.tap("#copyBackup")
+        r.hold(2.4)
+
         # ---- outro
         r.no_caption()
         r.card("""<img src="icons/logo-512.png" alt=""><h1>Good luck!</h1><ul>
