@@ -7,7 +7,7 @@
 //
 // Bump CACHE when the list of files changes.
 
-const CACHE = 'drlotto-v19';
+const CACHE = 'drlotto-v20';
 const ASSETS = [
   './',
   './index.html',
