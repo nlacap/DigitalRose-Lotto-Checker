@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   sanitizeInput, parseCell, validateSet, liveCheck, parseIsoDate,
   validateDrawDate, matchNumbers, prizeTier, findDuplicateBets,
-  manilaNow, drawStatus, resultsAvailable,
+  manilaNow, drawStatus, resultsAvailable, nextDrawDate,
 } from '../js/validation.js';
 import { GAMES } from '../js/config.js';
 
@@ -108,4 +108,34 @@ test('matching and prizes', () => {
 test('findDuplicateBets', () => {
   const a = [1, 2, 3, 4, 5, 6];
   assert.deepEqual(findDuplicateBets([a, null, [6, 5, 4, 3, 2, 1], [1, 2, 3, 4, 5, 7]]), [[0, 2]]);
+});
+
+test('nextDrawDate: today counts only until the 9 PM draw', () => {
+  // Fri 9 Oct 2026. 6/45 and 6/58 draw on Fridays; 6/42 does not (Tue/Thu/Sat).
+  assert.equal(nextDrawDate(GAMES[1], afternoon), '2026-10-09'); // 6/45, Friday before 9 PM → tonight
+  assert.equal(nextDrawDate(GAMES[1], night), '2026-10-12');     // after 9 PM → Monday
+  assert.equal(nextDrawDate(GAMES[4], afternoon), '2026-10-09'); // 6/58 (Sun/Tue/Fri)
+  assert.equal(nextDrawDate(GAMES[4], night), '2026-10-11');     // → Sunday
+  assert.equal(nextDrawDate(g642, afternoon), '2026-10-10');     // 6/42 → Saturday
+});
+
+test('nextDrawDate: month rollover and every game lands on its own draw day', () => {
+  const satEvening = new Date('2026-10-31T12:00:00Z'); // Sat 31 Oct, 8:00 PM Manila
+  const satNight = new Date('2026-10-31T14:00:00Z');   // Sat 31 Oct, 10:00 PM Manila
+  assert.equal(nextDrawDate(g642, satEvening), '2026-10-31');
+  assert.equal(nextDrawDate(g642, satNight), '2026-11-03'); // Tuesday, next month
+  for (const g of GAMES) {
+    const iso = nextDrawDate(g, satNight);
+    assert.ok(g.drawDays.includes(parseIsoDate(iso).getDay()), `${g.id} → ${iso}`);
+    assert.ok(iso > '2026-10-31');
+  }
+});
+
+test('nextDrawDate uses Philippine time, not the phone zone', () => {
+  // 16:30 UTC Fri = 00:30 Sat in Manila → 6/42 draws tonight (Saturday), not next Tuesday
+  assert.equal(nextDrawDate(g642, new Date('2026-10-09T16:30:00Z')), '2026-10-10');
+});
+
+test('nextDrawDate falls back to today for a game with no draw days', () => {
+  assert.equal(nextDrawDate({ id: 'x' }, afternoon), '2026-10-09');
 });

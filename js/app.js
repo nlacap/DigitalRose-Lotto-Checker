@@ -3,10 +3,11 @@
 import { APP_VERSION, GAMES, BET_SLOTS, PICK_COUNT, STORAGE_KEY } from './config.js';
 import {
   sanitizeInput, validateSet, liveCheck, validateDrawDate, notDrawnMessage, resultsAvailable,
-  matchNumbers, prizeTier, findDuplicateBets,
+  matchNumbers, prizeTier, findDuplicateBets, nextDrawDate,
 } from './validation.js';
-import { loadState, saveState, blankBets, blankRow, loadResults, saveResults, mergeResults, findResult, latestResult } from './storage.js';
+import { loadState, saveState, blankBets, blankRow, gameHasData, countBets, clearAllGames, loadResults, saveResults, mergeResults, findResult, latestResult } from './storage.js';
 import { parseResults } from './resultsParser.js';
+import { makeBackup, parseBackup, resultsToList } from './backup.js';
 import { luckyPick } from './luckyPick.js';
 import { $, $$, el } from './dom.js';
 import { setStatus } from './status.js';
@@ -171,10 +172,12 @@ function spreadAcrossRow(x) {
   persist();
   clearResults();
   liveValidate(key);
+  const dated = key !== 'w' ? syncAutoDate({ quiet: true }) : null;
   const extra = parts.length - (PICK_COUNT - start);
   setStatus(extra > 0 ? 'warn' : 'info',
     `Filled ${Math.min(parts.length, PICK_COUNT - start)} numbers into ${key === 'w' ? 'the winning numbers' : 'Bet ' + (key + 1)}.` +
-    (extra > 0 ? ` ${extra} extra number${extra > 1 ? 's were' : ' was'} ignored.` : ''));
+    (extra > 0 ? ` ${extra} extra number${extra > 1 ? 's were' : ' was'} ignored.` : '') +
+    (dated ? ' ' + autoDateNote(dated) : ''));
   inputs[Math.min(start + parts.length, PICK_COUNT) - 1]?.blur();
   return true;
 }
@@ -190,6 +193,8 @@ function onCellInput(e) {
   persist();
   clearResults();
   liveValidate(key);
+  // a finished bet row with no draw date yet → fill in the next draw date
+  if (key !== 'w' && rowCells(key).every(Boolean)) syncAutoDate();
 
   // jump to the next box once the number can't get any longer
   const typing = !e.inputType || e.inputType.startsWith('insert');
@@ -202,14 +207,47 @@ function onCellInput(e) {
 function hasAnyBet() { return draw().bets.flat().some(Boolean); }
 function hasAnything() { return hasAnyBet() || draw().wins.some(Boolean) || !!draw().date; }
 
+/**
+ * A game that has bets but no draw date gets the game's next draw date.
+ * A date you already set is never changed. Does not save or redraw — callers do.
+ * @returns {string|null} the date that was set, or null if nothing changed
+ */
+function autoSetDate() {
+  if (draw().date || !hasAnyBet()) return null;
+  draw().date = nextDrawDate(game());
+  return draw().date;
+}
+
+const autoDateNote = iso => `Draw date set to ${fmtDate(iso)} — the next ${game().name} draw. Change it if your ticket is for a different draw.`;
+
+/**
+ * Used while typing, where there is no full redraw: set the date and refresh only what depends on it.
+ * `quiet` skips the status message when the caller shows its own.
+ * @returns {string|null} the date that was set, or null
+ */
+function syncAutoDate({ quiet = false } = {}) {
+  const iso = autoSetDate();
+  if (!iso) return null;
+  persist();
+  $('#drawDate').value = iso;
+  showDateHint();
+  applyDrawLock();
+  autoFillWinning();
+  if (!quiet) setStatus('info', autoDateNote(iso));
+  return iso;
+}
+
 function wire() {
   $$('.tab').forEach((t, i) => t.addEventListener('click', () => {
     if (i === state.game) return;
     state.game = i;
+    const dated = autoSetDate(); // saved bets but no date yet → next draw date
     persist();
     render();
     const auto = autoFillWinning();
-    setStatus('info', `${GAMES[i].name} selected. Its saved bets were loaded.` + (auto === 'filled' ? ' Winning numbers filled from saved official results.' : ''));
+    setStatus('info', `${GAMES[i].name} selected. ` + (hasAnyBet() ? 'Its saved bets were loaded.' : 'No saved bets yet.') +
+      (dated ? ' ' + autoDateNote(dated) : '') +
+      (auto === 'filled' ? ' Winning numbers filled from saved official results.' : ''));
   }));
 
   $('#drawDate').addEventListener('change', e => {
@@ -287,11 +325,27 @@ function wire() {
     setStatus(saved.ok ? 'info' : 'warn', saved.ok ? 'Saved official results cleared for all games.' : saved.error);
   });
 
+  // Clears only the game that is selected — the other four games keep their bets, date and winning numbers.
   $('#newDraw').addEventListener('click', () => {
-    if (hasAnything() && !confirm('Clear the draw date, all bets and winning numbers?')) return;
+    if (hasAnything() && !confirm(`Clear the draw date, all bets and winning numbers for ${game().name}? Your other games are not affected.`)) return;
     state.byGame[state.game] = { date: '', bets: blankBets(), wins: blankRow() };
-    afterEdit('Ready for a new draw.');
+    afterEdit(`Ready for a new ${game().name} draw. Your other games were not changed.`);
   });
+
+  // Clears every game's date, bets and winning numbers. Saved official results have their own button.
+  $('#clearAllGames').addEventListener('click', () => {
+    const used = GAMES.filter((_, i) => gameHasData(state.byGame[i]));
+    if (!used.length) { setStatus('info', 'Nothing to clear — no game has a draw date, bets or winning numbers.'); return; }
+    const bets = state.byGame.reduce((n, g) => n + countBets(g), 0);
+    const names = used.map(g => g.id).join(', ');
+    if (!confirm(`Clear the draw date, bets and winning numbers for ALL games?\n\nGames with entries: ${names} (${bets} bet${bets === 1 ? '' : 's'}).\nThis cannot be undone. Saved official results are kept.`)) return;
+    state = clearAllGames(state);
+    afterEdit(`Cleared all games (${names}). Saved official results were kept.`);
+  });
+
+  $('#copyBackup').addEventListener('click', copyBackup);
+  $('#restoreBackup').addEventListener('click', restoreBackup);
+  $('#backupText').addEventListener('input', () => { $('#backupHint').textContent = ''; });
 
   $('#compare').addEventListener('click', compare);
 
@@ -342,6 +396,7 @@ function applyBets(r, hint, gameIndex) {
   state.game = gameIndex;
   draw().bets = blankBets();
   r.bets.forEach((nums, i) => { draw().bets[i] = nums.map(String); });
+  const dated = autoSetDate();
   persist();
   render();
   const notes = [...r.rejected];
@@ -349,7 +404,8 @@ function applyBets(r, hint, gameIndex) {
   hint.className = notes.length ? 'hint warn' : 'hint';
   hint.textContent = notes.length ? 'Skipped: ' + notes.join(' ') : '';
   setStatus(notes.length ? 'warn' : 'success',
-    `Filled ${r.bets.length} bet${r.bets.length > 1 ? 's' : ''} for ${game().name}${r.gameDetected ? ' (game read from ticket)' : ''}. Please check them against your ticket.`, notes);
+    `Filled ${r.bets.length} bet${r.bets.length > 1 ? 's' : ''} for ${game().name}${r.gameDetected ? ' (game read from ticket)' : ''}. Please check them against your ticket.`,
+    dated ? [...notes, autoDateNote(dated)] : notes);
 }
 
 // ---------------------------------------------------------------- saved PCSO results
@@ -448,6 +504,57 @@ function importResults() {
     [...list, ...notes]);
 }
 
+// ---------------------------------------------------------------- back up / restore
+
+async function copyBackup() {
+  const text = makeBackup(state, results);
+  const box = $('#backupText');
+  const hint = $('#backupHint');
+  box.value = text;
+  hint.className = 'hint';
+  try {
+    await navigator.clipboard.writeText(text);
+    hint.textContent = 'Backup copied. Open the other copy of the app, open this section, touch and hold the box, choose Paste, then tap RESTORE FROM BOX.';
+  } catch {
+    // clipboard blocked: leave the text selected so it can be copied by hand
+    box.focus();
+    box.select();
+    box.setSelectionRange(0, text.length);
+    hint.className = 'hint warn';
+    hint.textContent = 'Could not copy automatically. The backup is selected in the box — touch and hold it and choose Copy.';
+  }
+}
+
+function restoreBackup() {
+  const hint = $('#backupHint');
+  hint.className = 'hint';
+  const r = parseBackup($('#backupText').value);
+  if (!r.ok) { hint.className = 'hint warn'; hint.textContent = r.error; return; }
+
+  const games = r.state.byGame.filter(gameHasData).length;
+  const bets = r.state.byGame.reduce((n, g) => n + countBets(g), 0);
+  const when = r.exportedAt && !Number.isNaN(Date.parse(r.exportedAt))
+    ? ' made ' + new Date(r.exportedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+    : '';
+  const hasData = state.byGame.some(gameHasData);
+  // nothing here to lose (e.g. a fresh Home Screen copy) → no need to ask
+  if (hasData && !confirm(`Restore the backup${when}?\n\nIt has ${bets} bet${bets === 1 ? '' : 's'} in ${games} game${games === 1 ? '' : 's'}. The bets, dates and winning numbers on this device will be replaced. Saved official results from the backup are added to the ones here.`)) return;
+
+  state = r.state;
+  const merged = mergeResults(results, resultsToList(r.results));
+  results = merged.db;
+  const saved = saveResults(results);
+  persist();
+  render();
+  renderSavedList();
+  autoFillWinning();
+  $('#backupText').value = '';
+  setStatus(saved.ok ? 'success' : 'warn',
+    `Backup restored: ${bets} bet${bets === 1 ? '' : 's'} in ${games} game${games === 1 ? '' : 's'}` +
+    (merged.added ? `, ${merged.added} saved official result${merged.added === 1 ? '' : 's'} added` : '') + '.' +
+    (saved.ok ? '' : ' ' + saved.error));
+}
+
 // ---------------------------------------------------------------- Lucky Pick
 
 const fmtPick = nums => nums.map(n => String(n).padStart(2, '0')).join('-');
@@ -484,16 +591,19 @@ function luckyEmptyBets() {
     draw().bets[i] = nums.map(String);
     lines.push(`Bet ${i + 1}: ${fmtPick(nums)}`);
   }
+  const dated = autoSetDate();
   persist();
   render();
   empty.forEach(flashBet);
-  setStatus('success', `🎲 Lucky Pick filled ${empty.length} empty bet${empty.length > 1 ? 's' : ''}.`, lines);
+  setStatus('success', `🎲 Lucky Pick filled ${empty.length} empty bet${empty.length > 1 ? 's' : ''}.`,
+    dated ? [...lines, autoDateNote(dated)] : lines);
 }
 
 function afterEdit(message) {
+  const dated = autoSetDate();
   persist();
   render();
-  setStatus('info', message);
+  setStatus('info', dated ? `${message} ${autoDateNote(dated)}` : message);
 }
 
 // ---------------------------------------------------------------- compare
@@ -605,6 +715,7 @@ window.addEventListener('error', e => setStatus('error', 'Unexpected error: ' + 
 window.addEventListener('unhandledrejection', e => setStatus('error', 'Unexpected error: ' + (e.reason?.message || e.reason || 'unknown') + '.'));
 
 build();
+if (autoSetDate()) persist(); // bets saved without a date (e.g. from an older version) → next draw date
 render();
 renderSavedList();
 if (autoFillWinning() === 'filled') setStatus('info', 'Winning numbers filled from saved official results.');

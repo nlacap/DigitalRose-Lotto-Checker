@@ -4,14 +4,17 @@ Offline iPhone web app for checking Philippine 6-number lotto bets
 (6/42, 6/45, 6/49, 6/55, 6/58) against the official winning numbers.
 
 **Live:** https://nlacap.github.io/DigitalRose-Lotto-Checker/
-Current version is shown in the page footer (v2.6.0).
+Current version is shown in the page footer (v2.7.0).
 
 ▶ **[How-to video](https://nlacap.github.io/DigitalRose-Lotto-Checker/docs/how-to-use.mp4)** (80 s) — also linked
 from the app footer. It walks through every step below with the real app.
 
 ## Using it on iPhone
 
-1. **Pick the game and draw date.**
+1. **Pick the game and draw date.** Each game (6/42, 6/45, 6/49, 6/55, 6/58) keeps its own bets, draw
+   date and winning numbers, so switching games brings back what you saved for that game. If a game has
+   bets but no date yet, the app fills in that game's **next draw date** (Philippine time; today counts
+   until the 9:00 PM draw). A date you already set is never changed.
 2. **Enter your bets** (up to 6) — any of:
    - type the numbers (the cursor jumps to the next box automatically),
    - tap **🎲 LUCKY PICK** on a bet for six random numbers, or **🎲 LUCKY PICK EMPTY BETS** to fill
@@ -26,9 +29,31 @@ from the app footer. It walks through every step below with the real app.
    - paste all six at once (e.g. `05-12-23-34-40-41`) into the first winning box,
    - type them or use the board.
 4. After the 9:00 PM draw, tap **COMPARE ALL BETS**. Each bet shows its matches and prize tier (3, 4, 5 or 6 numbers).
+5. Clearing, from smallest to largest:
+   - **Clear Bets** — the bets of the selected game only.
+   - **NEW DRAW / CLEAR ALL** — the draw date, bets and winning numbers of the **selected game only**;
+     the other four games and your saved official results are not touched.
+   - **CLEAR ALL GAMES** — the draw date, bets and winning numbers of **all five games**. It asks first,
+     listing the games and number of bets it will remove. Saved official results are kept.
+   - **Clear saved results** (under *Scan or paste official results*) — the saved official results for
+     all games.
 
 Everything is saved automatically on the phone and works offline once loaded.
 Add it to the Home Screen from Safari's Share menu for an app-like icon.
+
+### Moving your data to another copy of the app
+
+On an iPhone, **Safari** and the **Home Screen icon** keep separate data, so bets saved in one are not
+visible in the other. To move them (or to another iPhone):
+
+1. In the copy that has your data, open **💾 Back up or move your data** (bottom of the page) and tap
+   **COPY BACKUP**. If the phone won't copy automatically, the text is selected — touch and hold, **Copy**.
+2. In the other copy, open the same section, touch and hold the box, choose **Paste**, tap **RESTORE FROM BOX**.
+
+The backup holds every game's bets, draw date and winning numbers, the selected game, and your saved
+official results. Restoring replaces the bets on that device (it asks first if there is anything to lose)
+and *adds* the backup's saved official results to the ones already there. Text that is not a backup is
+refused and changes nothing. Tip: paste the backup into Notes to keep a copy.
 
 ### Saving official results
 
@@ -86,6 +111,7 @@ js/ticketParser.js    reads bets from scanned/pasted ticket text         — uni
 js/resultsParser.js   reads official results copied/scanned from PCSO    — unit tested
 js/luckyPick.js       secure, unbiased random numbers for Lucky Pick     — unit tested
 js/storage.js         bets + saved results: load/save, repair, migration — unit tested
+js/backup.js          backup text for moving data between app copies     — unit tested
 js/picker.js          number-board overlay
 js/status.js          status message box
 js/dom.js             small DOM helpers
@@ -108,7 +134,7 @@ Data on the phone (localStorage):
 ## Development
 
 ```
-npm test        # 40 unit tests, also run by GitHub Actions on every push
+npm test        # 53 unit tests, also run by GitHub Actions on every push
 ```
 
 To preview locally, serve the folder over HTTP (ES modules don't load from `file://`):
@@ -137,6 +163,13 @@ video shows the scanned text appearing in the box.
 
 ## Changelog
 
+- **2.7.0** — A game with saved bets but no draw date now gets its next draw date automatically (when you
+  switch to the game, finish typing a bet, scan a ticket, Lucky Pick or use the number board). A date you
+  already set is never changed. **NEW DRAW / CLEAR ALL** now names the game it clears and says the other
+  games are not affected. New **CLEAR ALL GAMES** button clears every game's date, bets and winning
+  numbers after a confirmation (saved official results are kept). New **💾 Back up or move your data**
+  (COPY BACKUP / RESTORE FROM BOX) moves bets and saved results between copies of the app, e.g. from
+  Safari to the Home Screen icon.
 - **2.6.0** — New **Clear saved results** button (under *Scan or paste official results*) empties the
   saved official results for all games, no prompt. Removed the redundant **Clear Winning** button.
 - **2.5.0** — Renamed to DigitalRose Lotto Checker (repo, header, title, app name); “PCSO results”

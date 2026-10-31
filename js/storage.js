@@ -17,6 +17,16 @@ export const defaultState = () => ({
   byGame: GAMES.map(blankGame),
 });
 
+/** Does one game's saved entry hold anything — a date, a bet or winning numbers? */
+export const gameHasData = g =>
+  !!g?.date || (g?.bets ?? []).some(row => row.some(Boolean)) || (g?.wins ?? []).some(Boolean);
+
+/** Number of bet rows with at least one number in one game's saved entry. */
+export const countBets = g => (g?.bets ?? []).filter(row => row.some(Boolean)).length;
+
+/** The same state with every game blanked. Which game is selected is kept. Pure. */
+export const clearAllGames = state => ({ ...state, byGame: GAMES.map(blankGame) });
+
 const cleanCell = c => {
   const s = String(c ?? '').trim();
   return /^\d{1,2}$/.test(s) ? s : '';

@@ -7,13 +7,14 @@
 //
 // Bump CACHE when the list of files changes.
 
-const CACHE = 'drlotto-v19';
+const CACHE = 'drlotto-v20';
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './css/styles.css',
   './js/app.js',
+  './js/backup.js',
   './js/config.js',
   './js/dom.js',
   './js/picker.js',

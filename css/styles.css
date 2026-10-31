@@ -197,6 +197,9 @@ input[type=date] {
 .actions button {
   flex:1;
 }
+.actions + .help {
+  margin-top:8px;
+}
 .status {
   border:1px solid var(--line);
   border-radius:12px;

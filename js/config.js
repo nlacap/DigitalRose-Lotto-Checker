@@ -1,6 +1,6 @@
 // Static configuration. Nothing in here touches the DOM or storage.
 
-export const APP_VERSION = '2.6.0';
+export const APP_VERSION = '2.7.0';
 
 export const STORAGE_KEY = 'pcso-lotto-checker-v1'; // kept so existing saved bets still load
 export const BACKUP_KEY = STORAGE_KEY + '.backup';

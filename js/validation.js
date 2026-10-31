@@ -118,6 +118,26 @@ export function drawStatus(iso, now = new Date()) {
   return minutes >= DRAW_HOUR * 60 ? 'drawn' : 'tonight';
 }
 
+/**
+ * The next draw of a game that hasn't been held yet, as "YYYY-MM-DD" (Philippine time).
+ * Today counts while it is still before the draw time; after that, the next draw day.
+ * Falls back to today's date for a game with no known draw days.
+ */
+export function nextDrawDate(game, now = new Date()) {
+  const { date: today, minutes } = manilaNow(now);
+  const start = parseIsoDate(today);
+  if (!game?.drawDays?.length) return today;
+
+  const afterDraw = minutes >= DRAW_HOUR * 60;
+  for (let offset = afterDraw ? 1 : 0; offset <= 7; offset++) {
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + offset);
+    if (game.drawDays.includes(d.getDay())) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+  }
+  return today; // unreachable for valid drawDays
+}
+
 /** True when winning numbers for this draw date can exist. */
 export const resultsAvailable = (iso, now = new Date()) => {
   const s = drawStatus(iso, now);

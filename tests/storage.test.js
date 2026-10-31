@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { loadState, saveState, sanitizeState, defaultState, sanitizeResults, mergeResults, findResult, latestResult, loadResults, saveResults } from '../js/storage.js';
+import { loadState, saveState, sanitizeState, defaultState, sanitizeResults, mergeResults, findResult, latestResult, loadResults, saveResults, gameHasData, countBets, clearAllGames } from '../js/storage.js';
 import { STORAGE_KEY, BACKUP_KEY, GAMES } from '../js/config.js';
 
 const memStore = (init = {}) => {
@@ -80,4 +80,33 @@ test('results: damaged entries are dropped', () => {
   const db = sanitizeResults({ 0: { '2026-10-08': [1, 2, 3, 4, 5, 99], 'bad': [1, 2, 3, 4, 5, 6], '2026-10-06': [6, 5, 4, 3, 2, 1] }, 9: {} });
   assert.deepEqual(db, { 0: { '2026-10-06': [1, 2, 3, 4, 5, 6] } });
   assert.deepEqual(loadResults(memStore({ 'pcso-lotto-results-v1': '{oops' })), {});
+});
+
+test('gameHasData and countBets', () => {
+  const st = defaultState();
+  assert.equal(st.byGame.some(gameHasData), false);
+  st.byGame[1].date = '2026-11-02';
+  assert.equal(gameHasData(st.byGame[1]), true);   // a date alone counts
+  st.byGame[2].wins[0] = '7';
+  assert.equal(gameHasData(st.byGame[2]), true);   // winning numbers alone count
+  st.byGame[3].bets[4][2] = '9';
+  assert.equal(gameHasData(st.byGame[3]), true);   // a partly filled bet counts
+  assert.equal(countBets(st.byGame[3]), 1);
+  assert.equal(countBets(st.byGame[0]), 0);
+  assert.equal(gameHasData(null), false);
+});
+
+test('clearAllGames blanks every game, keeps the selected game, and does not mutate', () => {
+  const st = defaultState();
+  st.game = 3;
+  st.byGame[0].bets[0] = ['1', '2', '3', '4', '5', '6'];
+  st.byGame[3].date = '2026-11-02';
+  st.byGame[4].wins = ['1', '2', '3', '4', '5', '6'];
+  const next = clearAllGames(st);
+  assert.equal(next.game, 3);
+  assert.deepEqual(next, { ...defaultState(), game: 3 }); // fully blank, only the selection is kept
+  assert.equal(next.byGame.length, GAMES.length);
+  assert.equal(next.byGame.some(gameHasData), false);
+  assert.equal(st.byGame[0].bets[0][0], '1'); // original untouched
+  assert.notEqual(next.byGame[0].bets, next.byGame[1].bets); // no shared arrays between games
 });
