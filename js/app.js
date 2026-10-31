@@ -5,7 +5,7 @@ import {
   sanitizeInput, validateSet, liveCheck, validateDrawDate, notDrawnMessage, resultsAvailable,
   matchNumbers, prizeTier, findDuplicateBets, nextDrawDate,
 } from './validation.js';
-import { loadState, saveState, blankBets, blankRow, loadResults, saveResults, mergeResults, findResult, latestResult } from './storage.js';
+import { loadState, saveState, blankBets, blankRow, gameHasData, countBets, clearAllGames, loadResults, saveResults, mergeResults, findResult, latestResult } from './storage.js';
 import { parseResults } from './resultsParser.js';
 import { luckyPick } from './luckyPick.js';
 import { $, $$, el } from './dom.js';
@@ -329,6 +329,17 @@ function wire() {
     if (hasAnything() && !confirm(`Clear the draw date, all bets and winning numbers for ${game().name}? Your other games are not affected.`)) return;
     state.byGame[state.game] = { date: '', bets: blankBets(), wins: blankRow() };
     afterEdit(`Ready for a new ${game().name} draw. Your other games were not changed.`);
+  });
+
+  // Clears every game's date, bets and winning numbers. Saved official results have their own button.
+  $('#clearAllGames').addEventListener('click', () => {
+    const used = GAMES.filter((_, i) => gameHasData(state.byGame[i]));
+    if (!used.length) { setStatus('info', 'Nothing to clear — no game has a draw date, bets or winning numbers.'); return; }
+    const bets = state.byGame.reduce((n, g) => n + countBets(g), 0);
+    const names = used.map(g => g.id).join(', ');
+    if (!confirm(`Clear the draw date, bets and winning numbers for ALL games?\n\nGames with entries: ${names} (${bets} bet${bets === 1 ? '' : 's'}).\nThis cannot be undone. Saved official results are kept.`)) return;
+    state = clearAllGames(state);
+    afterEdit(`Cleared all games (${names}). Saved official results were kept.`);
   });
 
   $('#compare').addEventListener('click', compare);

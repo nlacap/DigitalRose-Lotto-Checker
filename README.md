@@ -29,9 +29,14 @@ from the app footer. It walks through every step below with the real app.
    - paste all six at once (e.g. `05-12-23-34-40-41`) into the first winning box,
    - type them or use the board.
 4. After the 9:00 PM draw, tap **COMPARE ALL BETS**. Each bet shows its matches and prize tier (3, 4, 5 or 6 numbers).
-5. **NEW DRAW / CLEAR ALL** clears the draw date, bets and winning numbers of the **selected game only** —
-   the other four games and your saved official results are not touched. (**Clear Bets** clears just the
-   bets of the selected game; **Clear saved results** empties the saved official results for all games.)
+5. Clearing, from smallest to largest:
+   - **Clear Bets** — the bets of the selected game only.
+   - **NEW DRAW / CLEAR ALL** — the draw date, bets and winning numbers of the **selected game only**;
+     the other four games and your saved official results are not touched.
+   - **CLEAR ALL GAMES** — the draw date, bets and winning numbers of **all five games**. It asks first,
+     listing the games and number of bets it will remove. Saved official results are kept.
+   - **Clear saved results** (under *Scan or paste official results*) — the saved official results for
+     all games.
 
 Everything is saved automatically on the phone and works offline once loaded.
 Add it to the Home Screen from Safari's Share menu for an app-like icon.
@@ -114,7 +119,7 @@ Data on the phone (localStorage):
 ## Development
 
 ```
-npm test        # 44 unit tests, also run by GitHub Actions on every push
+npm test        # 46 unit tests, also run by GitHub Actions on every push
 ```
 
 To preview locally, serve the folder over HTTP (ES modules don't load from `file://`):
@@ -146,7 +151,8 @@ video shows the scanned text appearing in the box.
 - **2.7.0** — A game with saved bets but no draw date now gets its next draw date automatically (when you
   switch to the game, finish typing a bet, scan a ticket, Lucky Pick or use the number board). A date you
   already set is never changed. **NEW DRAW / CLEAR ALL** now names the game it clears and says the other
-  games are not affected.
+  games are not affected. New **CLEAR ALL GAMES** button clears every game's date, bets and winning
+  numbers after a confirmation (saved official results are kept).
 - **2.6.0** — New **Clear saved results** button (under *Scan or paste official results*) empties the
   saved official results for all games, no prompt. Removed the redundant **Clear Winning** button.
 - **2.5.0** — Renamed to DigitalRose Lotto Checker (repo, header, title, app name); “PCSO results”
