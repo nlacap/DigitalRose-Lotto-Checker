@@ -91,6 +91,19 @@
       <div class="status info" id="status" role="status" aria-live="polite">Enter a draw date, at least one complete bet, and six winning numbers.</div>
     </section>
 
+    <section class="card">
+      <details class="quick" id="backupFill">
+        <summary>💾 Back up or move your data</summary>
+        <div class="help">Moves your bets, dates, winning numbers and saved official results to another copy of the app — for example from <b>Safari</b> to the <b>Home Screen icon</b> (they keep separate data), or to another iPhone.<br><b>1.</b> In the copy that has your data, tap <b>COPY BACKUP</b>.<br><b>2.</b> Open the other copy and open this section. Touch and hold the box, choose <b>Paste</b>, then tap <b>RESTORE FROM BOX</b>.<br>Tip: paste the backup into Notes or a message to yourself if you need to carry it between devices.</div>
+        <textarea id="backupText" rows="4" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Your backup appears here, or paste a backup here to restore it."></textarea>
+        <div class="hint" id="backupHint" aria-live="polite"></div>
+        <div class="actions">
+          <button type="button" class="action" id="copyBackup">COPY BACKUP</button>
+          <button type="button" class="action secondary" id="restoreBackup">RESTORE FROM BOX</button>
+        </div>
+      </details>
+    </section>
+
     <footer class="footer">DigitalRose Lotto Checker • <span id="version"></span> • <a href="docs/how-to-use.mp4" target="_blank" rel="noopener">▶ How-to video</a><br>Independent app — not affiliated with or endorsed by PCSO.</footer>
     <noscript><p class="status error">JavaScript is required for this checker.</p></noscript>
   </main>

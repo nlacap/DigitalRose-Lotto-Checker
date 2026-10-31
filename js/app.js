@@ -7,6 +7,7 @@ import {
 } from './validation.js';
 import { loadState, saveState, blankBets, blankRow, gameHasData, countBets, clearAllGames, loadResults, saveResults, mergeResults, findResult, latestResult } from './storage.js';
 import { parseResults } from './resultsParser.js';
+import { makeBackup, parseBackup, resultsToList } from './backup.js';
 import { luckyPick } from './luckyPick.js';
 import { $, $$, el } from './dom.js';
 import { setStatus } from './status.js';
@@ -342,6 +343,10 @@ function wire() {
     afterEdit(`Cleared all games (${names}). Saved official results were kept.`);
   });
 
+  $('#copyBackup').addEventListener('click', copyBackup);
+  $('#restoreBackup').addEventListener('click', restoreBackup);
+  $('#backupText').addEventListener('input', () => { $('#backupHint').textContent = ''; });
+
   $('#compare').addEventListener('click', compare);
 
   $('#fillBets').addEventListener('click', fillFromTicket);
@@ -497,6 +502,57 @@ function importResults() {
     `Saved ${parsed.results.length} official result${parsed.results.length > 1 ? 's' : ''}` +
     (auto === 'filled' ? ' and filled the winning numbers.' : '.') + ' Please check them against the official results.',
     [...list, ...notes]);
+}
+
+// ---------------------------------------------------------------- back up / restore
+
+async function copyBackup() {
+  const text = makeBackup(state, results);
+  const box = $('#backupText');
+  const hint = $('#backupHint');
+  box.value = text;
+  hint.className = 'hint';
+  try {
+    await navigator.clipboard.writeText(text);
+    hint.textContent = 'Backup copied. Open the other copy of the app, open this section, touch and hold the box, choose Paste, then tap RESTORE FROM BOX.';
+  } catch {
+    // clipboard blocked: leave the text selected so it can be copied by hand
+    box.focus();
+    box.select();
+    box.setSelectionRange(0, text.length);
+    hint.className = 'hint warn';
+    hint.textContent = 'Could not copy automatically. The backup is selected in the box — touch and hold it and choose Copy.';
+  }
+}
+
+function restoreBackup() {
+  const hint = $('#backupHint');
+  hint.className = 'hint';
+  const r = parseBackup($('#backupText').value);
+  if (!r.ok) { hint.className = 'hint warn'; hint.textContent = r.error; return; }
+
+  const games = r.state.byGame.filter(gameHasData).length;
+  const bets = r.state.byGame.reduce((n, g) => n + countBets(g), 0);
+  const when = r.exportedAt && !Number.isNaN(Date.parse(r.exportedAt))
+    ? ' made ' + new Date(r.exportedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+    : '';
+  const hasData = state.byGame.some(gameHasData);
+  // nothing here to lose (e.g. a fresh Home Screen copy) → no need to ask
+  if (hasData && !confirm(`Restore the backup${when}?\n\nIt has ${bets} bet${bets === 1 ? '' : 's'} in ${games} game${games === 1 ? '' : 's'}. The bets, dates and winning numbers on this device will be replaced. Saved official results from the backup are added to the ones here.`)) return;
+
+  state = r.state;
+  const merged = mergeResults(results, resultsToList(r.results));
+  results = merged.db;
+  const saved = saveResults(results);
+  persist();
+  render();
+  renderSavedList();
+  autoFillWinning();
+  $('#backupText').value = '';
+  setStatus(saved.ok ? 'success' : 'warn',
+    `Backup restored: ${bets} bet${bets === 1 ? '' : 's'} in ${games} game${games === 1 ? '' : 's'}` +
+    (merged.added ? `, ${merged.added} saved official result${merged.added === 1 ? '' : 's'} added` : '') + '.' +
+    (saved.ok ? '' : ' ' + saved.error));
 }
 
 // ---------------------------------------------------------------- Lucky Pick

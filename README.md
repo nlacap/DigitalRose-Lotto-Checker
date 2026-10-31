@@ -41,6 +41,20 @@ from the app footer. It walks through every step below with the real app.
 Everything is saved automatically on the phone and works offline once loaded.
 Add it to the Home Screen from Safari's Share menu for an app-like icon.
 
+### Moving your data to another copy of the app
+
+On an iPhone, **Safari** and the **Home Screen icon** keep separate data, so bets saved in one are not
+visible in the other. To move them (or to another iPhone):
+
+1. In the copy that has your data, open **💾 Back up or move your data** (bottom of the page) and tap
+   **COPY BACKUP**. If the phone won't copy automatically, the text is selected — touch and hold, **Copy**.
+2. In the other copy, open the same section, touch and hold the box, choose **Paste**, tap **RESTORE FROM BOX**.
+
+The backup holds every game's bets, draw date and winning numbers, the selected game, and your saved
+official results. Restoring replaces the bets on that device (it asks first if there is anything to lose)
+and *adds* the backup's saved official results to the ones already there. Text that is not a backup is
+refused and changes nothing. Tip: paste the backup into Notes to keep a copy.
+
 ### Saving official results
 
 1. On pcso.gov.ph, open the lotto results search and find the draw.
@@ -97,6 +111,7 @@ js/ticketParser.js    reads bets from scanned/pasted ticket text         — uni
 js/resultsParser.js   reads official results copied/scanned from PCSO    — unit tested
 js/luckyPick.js       secure, unbiased random numbers for Lucky Pick     — unit tested
 js/storage.js         bets + saved results: load/save, repair, migration — unit tested
+js/backup.js          backup text for moving data between app copies     — unit tested
 js/picker.js          number-board overlay
 js/status.js          status message box
 js/dom.js             small DOM helpers
@@ -119,7 +134,7 @@ Data on the phone (localStorage):
 ## Development
 
 ```
-npm test        # 46 unit tests, also run by GitHub Actions on every push
+npm test        # 53 unit tests, also run by GitHub Actions on every push
 ```
 
 To preview locally, serve the folder over HTTP (ES modules don't load from `file://`):
@@ -152,7 +167,9 @@ video shows the scanned text appearing in the box.
   switch to the game, finish typing a bet, scan a ticket, Lucky Pick or use the number board). A date you
   already set is never changed. **NEW DRAW / CLEAR ALL** now names the game it clears and says the other
   games are not affected. New **CLEAR ALL GAMES** button clears every game's date, bets and winning
-  numbers after a confirmation (saved official results are kept).
+  numbers after a confirmation (saved official results are kept). New **💾 Back up or move your data**
+  (COPY BACKUP / RESTORE FROM BOX) moves bets and saved results between copies of the app, e.g. from
+  Safari to the Home Screen icon.
 - **2.6.0** — New **Clear saved results** button (under *Scan or paste official results*) empties the
   saved official results for all games, no prompt. Removed the redundant **Clear Winning** button.
 - **2.5.0** — Renamed to DigitalRose Lotto Checker (repo, header, title, app name); “PCSO results”
